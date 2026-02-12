@@ -106,6 +106,13 @@ companion. Ver `workflow/01b-cve-research.md`.
 Ao encontrar um CVE, SEMPRE verificar se há CVEs relacionados. Um CVE
 isolado pode parecer "baixo impacto" mas combinado com outro = RCE/root.
 
+### 4. Correlação obrigatória pós-LinPEAS
+Após rodar LinPEAS e enumeração (4f), executar a fase de correlação (4g)
+ANTES de tentar qualquer exploração de privesc. A correlação cruza OS +
+PAM + polkit + D-Bus + sessão para identificar cadeias multi-step.
+Extrair e usar `scripts/privesc_correlator.py` (embutido no 04g).
+Ver `workflow/04g-privesc-correlation.md`.
+
 ## Status do Progresso
 
 | Fase | Status | Deliverable |
@@ -124,4 +131,5 @@ isolado pode parecer "baixo impacto" mas combinado com outro = RCE/root.
 | 4d. Exploit XSS | ⬜ Pendente | `04d_exploit_xss.md` |
 | 4e. Exploit SSRF | ⬜ Pendente | `04e_exploit_ssrf.md` |
 | 4f. Post-Shell Enum | ⬜ Pendente | `evidence/linpeas_*.txt` |
+| 4g. Privesc Correlation | ⬜ Pendente | `privesc_correlation.md` |
 | 5. Report | ⬜ Pendente | `05_report_executive.md` |
