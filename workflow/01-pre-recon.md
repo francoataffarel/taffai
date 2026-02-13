@@ -47,9 +47,46 @@ Antes de iniciar, confirmar: **HTB/CTF** ou **Real**?
 - [ ] Adicionar vhosts encontrados ao /etc/hosts
 
 ### 4. Enumeração de Diretórios e Endpoints
-- [ ] `gobuster dir -u http://{{TARGET}} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 50`
+
+> ⚠️ **REGRA**: NUNCA filtrar output de feroxbuster/gobuster/ffuf com `| grep | head` inline.
+> Sempre salvar em arquivo com `-o` e filtrar DEPOIS com `cat arquivo | grep`.
+
+- [ ] `feroxbuster -u http://{{TARGET}} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 50 -d 2 --auto-tune --no-state -o evidence/ferox_TARGET.txt`
+- [ ] (alternativa) `gobuster dir -u http://{{TARGET}} -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 50 -o evidence/gobuster_TARGET.txt`
 - [ ] `ffuf -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -u http://{{TARGET}}/FUZZ -mc 200,301,302,403`
 - [ ] Procurar: /admin, /api, /login, /register, /robots.txt, /sitemap.xml, /.env
+
+### 4b. Triagem de Endpoints Descobertos (OBRIGATÓRIO)
+
+> Cada endpoint encontrado na enumeração DEVE ser investigado individualmente.
+> O objetivo é mapear a lógica interna da aplicação e encontrar leaks.
+
+**Regras de triagem:**
+
+1. **Respostas pequenas (< 500 bytes) = provavelmente API**
+   - Acessar com `curl -s` e ler o body completo
+   - Respostas JSON com mensagens de erro (`{"error":"..."}`) são **information leaks** — revelam nomes de parâmetros, lógica interna, e fluxos de autenticação
+
+2. **Quando uma resposta diz "Missing X parameter":**
+   - O nome do parâmetro já foi revelado → testar via GET (`?param=test`) e POST (`-d "param=test"`)
+   - Testar variações: `token`, `api_token`, `auth_token`, `key`, `id`, `session`
+   - Comparar resposta de "missing" vs "invalid" → respostas diferentes confirmam que o parâmetro foi aceito
+
+3. **Conectar endpoints ao fluxo de auth:**
+   - Se existe `/login` + `/forgot-password` + `/user?token=X` → o token é provavelmente um reset token
+   - Mapear: login → esqueci senha → token enviado por email → endpoint que valida token
+   - Cada peça do fluxo pode ter vulnerabilidades (token previsível, IDOR, brute force)
+
+4. **Respostas 405 (Method Not Allowed) = endpoint existe mas o método HTTP está errado**
+   - Se GET retorna 405, testar POST, PUT, DELETE, PATCH
+   - Se POST retorna 405, testar GET
+
+**Checklist:**
+- [ ] Listar todos os endpoints com status ≠ 404
+- [ ] Acessar cada endpoint individualmente com `curl -s`
+- [ ] Documentar respostas JSON com mensagens de erro (são leaks)
+- [ ] Para cada "Missing X" → testar o parâmetro via GET e POST
+- [ ] Mapear o fluxo completo de auth (login → reset → token → user)
 
 ### 5. Análise de Código (se disponível)
 - [ ] Verificar se a aplicação é open source (GitHub)
